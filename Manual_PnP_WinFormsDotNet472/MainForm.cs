@@ -22,6 +22,8 @@ namespace Manual_PnP_WinFormsDotNet472
             InitializeComponent();
 
             if(initializeGamepad()) startInputTimer();
+
+            initSerial();
         }
 
         public void startInputTimer()
@@ -168,6 +170,21 @@ namespace Manual_PnP_WinFormsDotNet472
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Environment.Exit(69);
+        }
+
+        private void btnTOGGLE_Click(object sender, EventArgs e)
+        {
+            connectToSelectedSerialPort();
+        }
+
+        private void btnDISCONNECTSERIAL_Click(object sender, EventArgs e)
+        {
+            disconnectSerial();
+        }
+
+        private void btnRESCANSERIAL_Click(object sender, EventArgs e)
+        {
+            initSerial();
         }
     }
 }
