@@ -45,11 +45,13 @@ namespace Manual_PnP_WinFormsDotNet472
                                 if(state.Offset == JoystickOffset.X)
                                 {
                                     log("RIGHT Pressed");
+                                    move_plus_X(1);
                                     //log($"{state}");
                                 }
                                 else if(state.Offset == JoystickOffset.Y)
                                 {
                                     log("DOWN Pressed");
+                                    move_minus_Y(1);
                                 }
                             }
                             else if(state.Value == 0x7FFF) //  32767
@@ -62,11 +64,13 @@ namespace Manual_PnP_WinFormsDotNet472
                                 if (state.Offset == JoystickOffset.X)
                                 {
                                     log("LEFT Pressed");
+                                    move_minus_X(1);
                                     //log($"{state}");
                                 }
                                 else if (state.Offset == JoystickOffset.Y)
                                 {
                                     log("UP Pressed");
+                                    move_plus_Y(1);
                                 }
                             }
                         }
@@ -88,9 +92,11 @@ namespace Manual_PnP_WinFormsDotNet472
                                         break;
                                     case (JoystickOffset.Buttons1):
                                         log("BTN-B Pressed");
+                                        move_minus_Z(1);
                                         break;
                                     case (JoystickOffset.Buttons2):
                                         log("BTN-X Pressed");
+                                        move_plus_Z(1);
                                         break;
                                     case (JoystickOffset.Buttons3):
                                         log("BTN-Y Pressed");
@@ -133,6 +139,12 @@ namespace Manual_PnP_WinFormsDotNet472
         {
             string op = $"[{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")}]: {output}"; 
             txtCONTROLLEROUTPUT.AppendText($"{op}\r\n");
+        }
+
+        public void logSerial(string output)
+        {
+            string op = $"[{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")}]: {output}";
+            txtSERIALOUT.AppendText($"{op}\r\n");
         }
 
         public bool initializeGamepad()
@@ -185,6 +197,16 @@ namespace Manual_PnP_WinFormsDotNet472
         private void btnRESCANSERIAL_Click(object sender, EventArgs e)
         {
             initSerial();
+        }
+
+        private void sendToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            gCODEOPTIONS();
+        }
+
+        private void btnSENDSERIAL_Click(object sender, EventArgs e)
+        {
+            sendManualSerialPacket();
         }
     }
 }
