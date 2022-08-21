@@ -97,6 +97,7 @@ namespace Manual_PnP_WinFormsDotNet472
                 return;
             }
             log($"Connected to serial port: {_SP.PortName}");
+            _SP.WriteLine("\n");
         }
 
         public void toggleSelectedSerialPort()
@@ -124,6 +125,7 @@ namespace Manual_PnP_WinFormsDotNet472
                 }
             }
             log($"OPENED {_SP.PortName} Serial Communication Port.\r\n");
+            _SP.WriteLine("\n");
         }
 
         public bool move_plus_X(int distance_mm)

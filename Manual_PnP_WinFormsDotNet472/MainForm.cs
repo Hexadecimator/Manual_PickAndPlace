@@ -7,8 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AForge.Video.DirectShow;
 using SharpDX;
 using SharpDX.DirectInput;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Manual_PnP_WinFormsDotNet472
 {
@@ -24,6 +26,8 @@ namespace Manual_PnP_WinFormsDotNet472
             if(initializeGamepad()) startInputTimer();
 
             initSerial();
+
+            setupVideoDevice();
         }
 
         public void startInputTimer()
@@ -207,6 +211,31 @@ namespace Manual_PnP_WinFormsDotNet472
         private void btnSENDSERIAL_Click(object sender, EventArgs e)
         {
             sendManualSerialPacket();
+        }
+
+        private void txtSERIALINPUT_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyData == Keys.Enter) sendManualSerialPacket();
+        }
+
+        private void btnVIDEODISCONNECT_Click(object sender, EventArgs e)
+        {
+            disconnectFromVideoDevice();
+        }
+
+        private void btnVIDEOCONNECT_Click(object sender, EventArgs e)
+        {
+            connectToSelectedVideoDevice();
+        }
+
+        private void btnRESCANVIDEODEVICES_Click(object sender, EventArgs e)
+        {
+            setupVideoDevice();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            disconnectFromVideoDevice();
         }
     }
 }
