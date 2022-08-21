@@ -232,7 +232,14 @@ namespace Manual_PnP_WinFormsDotNet472
 
         public void gCODEOPTIONS()
         {
-            _SP.WriteLine("$$");
+            try
+            {
+                _SP.WriteLine("$$");
+            }
+            catch (Exception ex)
+            {
+                log($"Error communicating with serial:\r\n{ex.Message}");
+            }  
         }
 
         public void sendManualSerialPacket()

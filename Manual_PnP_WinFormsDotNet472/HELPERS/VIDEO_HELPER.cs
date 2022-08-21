@@ -46,6 +46,18 @@ namespace Manual_PnP_WinFormsDotNet472
             }
         }
 
+        public void printCameraPropertyInfoToLog(CameraControlProperty ccp)
+        {
+            videoCaptureDevice.GetCameraPropertyRange(ccp,
+                                                      out int min,
+                                                      out int max,
+                                                      out int step,
+                                                      out int def,
+                                                      out CameraControlFlags ccf);
+
+            log($"Control Properties for {ccp}:\r\n - Min: {min}\r\n - Max: {max}\r\n - Step: {step}\r\n - Default: {def}\r\n - Control Flags: {ccf}");
+        }
+
         public void connectToSelectedVideoDevice()
         {
             try
@@ -55,13 +67,23 @@ namespace Manual_PnP_WinFormsDotNet472
                 videoCaptureDevice.NewFrame += videoCaptureDevice_NewFrame;
 
                 VideoCapabilities[] videoCapabilities = videoCaptureDevice.VideoCapabilities;
-                //log($"Total Capabilities: {videoCapabilities.Length}");
-                //foreach (var c in videoCapabilities)
-                //{
-                //    log($"Video Capability - {c.FrameSize}, {c.AverageFrameRate}");
-                //}
+                log($"Total Capabilities: {videoCapabilities.Length}");
+                foreach (var c in videoCapabilities)
+                {
+                    log($"Video Capability - {c.FrameSize}, {c.AverageFrameRate}");
+                }
 
                 videoCaptureDevice.VideoResolution = videoCapabilities[16];
+
+                // Print default values for some important properties:
+                printCameraPropertyInfoToLog(CameraControlProperty.Focus);
+                printCameraPropertyInfoToLog(CameraControlProperty.Zoom);
+                printCameraPropertyInfoToLog(CameraControlProperty.Iris);
+                printCameraPropertyInfoToLog(CameraControlProperty.Exposure);
+
+                changeVideoCameraFocus(true); // force set focus to true initially
+                chkAUTOFOCUS.Checked = true;
+
                 img = pbVIDEOOUT.Image;
                 videoCaptureDevice.Start();
             }
@@ -70,7 +92,7 @@ namespace Manual_PnP_WinFormsDotNet472
                 log($"ERROR! Could not connect to video device:\r\n{ex.Message}");
             }
         }
-
+        
         public void disconnectFromVideoDevice()
         {
             videoCaptureDevice.SignalToStop();
@@ -78,6 +100,28 @@ namespace Manual_PnP_WinFormsDotNet472
             if (videoCaptureDevice.IsRunning == true)
             {
                 videoCaptureDevice.Stop();
+            }
+        }
+
+        public void changeVideoCameraFocus(bool set_automatic_focus=false)
+        {
+            // TODO: AUTO FOCUS THE CAMERA WHEN WE ARE JUST MOVING AROUND THE CIRCUIT BOARD (X and Y axis)
+            //       BUT MOVE TO MANUAL LOCK-ON FOCUS WHEN WE ARE MOVING THE Z AXIS
+            if(set_automatic_focus)
+            {
+                videoCaptureDevice.SetCameraProperty(CameraControlProperty.Focus, 0, CameraControlFlags.Auto); // idk what middle argument should be
+                if(!chkAUTOFOCUS.Checked)
+                {
+                    chkAUTOFOCUS.Checked = true;
+                }
+            }
+            else
+            {
+                videoCaptureDevice.SetCameraProperty(CameraControlProperty.Focus, tbFOCUSSLIDER.Value, CameraControlFlags.Manual);
+                if(chkAUTOFOCUS.Checked)
+                {
+                    chkAUTOFOCUS.Checked = false;
+                }
             }
         }
     }

@@ -236,6 +236,24 @@ namespace Manual_PnP_WinFormsDotNet472
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             disconnectFromVideoDevice();
+            disconnectSerial();
+        }
+
+        private void tbFOCUSSLIDER_ValueChanged(object sender, EventArgs e)
+        {
+            changeVideoCameraFocus();
+        }
+
+        private void chkAUTOFOCUS_CheckedChanged(object sender, EventArgs e)
+        {
+            if(chkAUTOFOCUS.Checked)
+            {
+                changeVideoCameraFocus(true);
+            }
+            else
+            {
+                changeVideoCameraFocus(); // will take current value of slider bar
+            }
         }
     }
 }
