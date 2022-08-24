@@ -7,6 +7,7 @@ using System.IO.Ports;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using System.Windows.Forms;
 using System.Net.Sockets;
+using System.Reflection;
 
 namespace Manual_PnP_WinFormsDotNet472
 {
@@ -65,11 +66,67 @@ namespace Manual_PnP_WinFormsDotNet472
             if (_SP.IsOpen)
             {
                 _SP.Close();
-                log("Closed Serial Port");
+                //log("Closed Serial Port"); // cross thread errors from this
             } 
             else
             {
                 log("Serial port was not open.");
+            }
+        }
+
+        /*
+         * Example of GRBL Settings Output:
+            $0=50.000 (x, step/mm)
+            $1=50.000 (y, step/mm)
+            $2=50.000 (z, step/mm)
+            $3=10 (step pulse, usec)
+            $4=250.000 (default feed, mm/min)
+            $5=500.000 (default seek, mm/min)
+            $6=192 (step port invert mask, int:11000000)
+            $7=25 (step idle delay, msec)
+            $8=10.000 (acceleration, mm/sec^2)
+            $9=0.050 (junction deviation, mm)
+            $10=0.100 (arc, mm/segment)
+            $11=25 (n-arc correction, int)
+            $12=3 (n-decimals, int)
+            $13=0 (report inches, bool)
+            $14=1 (auto start, bool)
+            $15=0 (invert step enable, bool)
+            $16=0 (hard limits, bool)
+            $17=0 (homing cycle, bool)
+            $18=0 (homing dir invert mask, int:00000000)
+            $19=25.000 (homing feed, mm/min)
+            $20=250.000 (homing seek, mm/min)
+            $21=100 (homing debounce, msec)
+            $22=1.000 (homing pull-off, mm)
+        */
+        public void sendGRBRSettings()
+        {
+            double x_s, y_s, z_s, us;
+
+            if(!double.TryParse(txtXSTEPPERMM.Text, out x_s) ||
+               !double.TryParse(txtYSTEPPERMM.Text, out y_s) ||
+               !double.TryParse(txtZSTEPPERMM.Text, out z_s) ||
+               !double.TryParse(txtGRBLSETTINGPULSEWIDTH.Text, out us))
+            {
+                log($"GRBL settings wrong format. Check settings.");
+                return;
+            }
+
+            
+            string packet = $"$0={x_s}{_SP.NewLine}$1={y_s}{_SP.NewLine}$2={z_s}{_SP.NewLine}$3={us}{_SP.NewLine}"; 
+
+
+            logSerial($"Initializing Stepper Motor Settings:\r\n{packet}");
+
+            try
+            {
+                _SP.WriteLine(packet);
+                _SP.WriteLine("$$");
+            }
+            catch (Exception ex)
+            {
+                log($"Error, could not send GRBL settings to microcontroller:\r\n{ex.Message}");
             }
         }
 
@@ -128,13 +185,19 @@ namespace Manual_PnP_WinFormsDotNet472
             _SP.WriteLine("\n");
         }
 
-        public bool move_plus_X(int distance_mm)
+        public bool move_plus_X(double distance_mm)
         {
-            // G21G91G1X1F10
-            string packet = "G21G91G1X0.1F10"; // hardcode 0.1mm for all axis for now
+            // G21G91G1X1F10;
+            if(!double.TryParse(txtXFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1X{Math.Abs(Math.Round(distance_mm, 2))}F{fr}";
             try
             {
                 _SP.WriteLine(packet.Trim());
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -145,13 +208,19 @@ namespace Manual_PnP_WinFormsDotNet472
             return true;
         }
 
-        public bool move_minus_X(int distance_mm)
+        public bool move_minus_X(double distance_mm)
         {
             // G21G91G1X-1F10
-            string packet = "G21G91G1X-0.1F10";
+            if (!double.TryParse(txtXFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1X{Math.Abs(Math.Round(distance_mm, 2)) * -1}F{fr}";
             try
             {
                 _SP.WriteLine(packet);
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -162,13 +231,19 @@ namespace Manual_PnP_WinFormsDotNet472
             return true;
         }
 
-        public bool move_plus_Y(int distance_mm)
+        public bool move_plus_Y(double distance_mm)
         {
             // G21G91G1Y1F10
-            string packet = "G21G91G1Y0.1F10";
+            if (!double.TryParse(txtYFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1Y{Math.Abs(Math.Round(distance_mm, 2))}F{fr}";
             try
             {
                 _SP.WriteLine(packet);
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -179,13 +254,19 @@ namespace Manual_PnP_WinFormsDotNet472
             return true;
         }
 
-        public bool move_minus_Y(int distance_mm)
+        public bool move_minus_Y(double distance_mm)
         {
             // G21G91G1Y-1F10
-            string packet = "G21G91G1Y-0.1F10";
+            if (!double.TryParse(txtYFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1Y{Math.Abs(Math.Round(distance_mm, 2)) * -1}F{fr}";
             try
             {
                 _SP.WriteLine(packet);
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -196,13 +277,19 @@ namespace Manual_PnP_WinFormsDotNet472
             return true;
         }
 
-        public bool move_plus_Z(int distance_mm)
+        public bool move_plus_Z(double distance_mm)
         {
             // G21G91G1Z1F10
-            string packet = "G21G91G1Z0.1F10";
+            if (!double.TryParse(txtZFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1Z{Math.Abs(Math.Round(distance_mm, 2))}F{fr}";
             try
             {
                 _SP.WriteLine(packet);
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -213,13 +300,19 @@ namespace Manual_PnP_WinFormsDotNet472
             return true;
         }
 
-        public bool move_minus_Z(int distance_mm)
+        public bool move_minus_Z(double distance_mm)
         {
             // G21G91G1Z-1F10
-            string packet = "G21G91G1Z-0.1F10";
+            if (!double.TryParse(txtZFEEDRATE.Text, out double fr))
+            {
+                log("Error, cannnot interpret feed rate value. Check options.");
+                return false;
+            }
+            string packet = $"G21G91G1Z{Math.Abs(Math.Round(distance_mm, 2)) * -1}F{fr}";
             try
             {
                 _SP.WriteLine(packet);
+                logSerial($"Sent Packet [{packet}]");
             }
             catch (Exception ex)
             {
@@ -235,6 +328,7 @@ namespace Manual_PnP_WinFormsDotNet472
             try
             {
                 _SP.WriteLine("$$");
+                logSerial($"Sent Packet [$$]");
             }
             catch (Exception ex)
             {
@@ -247,6 +341,7 @@ namespace Manual_PnP_WinFormsDotNet472
             try
             {
                 _SP.WriteLine(txtSERIALINPUT.Text.Trim());
+                logSerial($"Sent Packet [{txtSERIALINPUT.Text.Trim()}]");
             }
             catch (Exception ex)
             {

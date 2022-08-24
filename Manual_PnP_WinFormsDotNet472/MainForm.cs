@@ -18,6 +18,9 @@ namespace Manual_PnP_WinFormsDotNet472
     {
         public Joystick gamepad;
         public Timer timer1;
+        double x_step = 0;
+        double y_step = 0;
+        double z_step = 0;
 
         public MainForm()
         {
@@ -38,6 +41,15 @@ namespace Manual_PnP_WinFormsDotNet472
             {
                 try
                 {
+                    // capture current step values:
+                    if(!double.TryParse(txtXSTEPSIZE.Text, out x_step) ||
+                       !double.TryParse(txtYSTEPSIZE.Text, out y_step) || 
+                       !double.TryParse(txtZSTEPSIZE.Text, out z_step))
+                    {
+                        log($"Error, unusable value in X/Y/Z step value, aborting movement.");
+                        return;
+                    }
+
                     gamepad.Poll();
                     var lastState = gamepad.GetBufferedData(); //only show the last state
                     foreach (var state in lastState)
@@ -49,13 +61,13 @@ namespace Manual_PnP_WinFormsDotNet472
                                 if(state.Offset == JoystickOffset.X)
                                 {
                                     log("RIGHT Pressed");
-                                    move_plus_X(1);
+                                    move_minus_X(x_step);
                                     //log($"{state}");
                                 }
                                 else if(state.Offset == JoystickOffset.Y)
                                 {
                                     log("DOWN Pressed");
-                                    move_minus_Y(1);
+                                    move_plus_Y(y_step);
                                 }
                             }
                             else if(state.Value == 0x7FFF) //  32767
@@ -68,13 +80,13 @@ namespace Manual_PnP_WinFormsDotNet472
                                 if (state.Offset == JoystickOffset.X)
                                 {
                                     log("LEFT Pressed");
-                                    move_minus_X(1);
+                                    move_plus_X(x_step);
                                     //log($"{state}");
                                 }
                                 else if (state.Offset == JoystickOffset.Y)
                                 {
                                     log("UP Pressed");
-                                    move_plus_Y(1);
+                                    move_minus_Y(y_step);
                                 }
                             }
                         }
@@ -96,11 +108,11 @@ namespace Manual_PnP_WinFormsDotNet472
                                         break;
                                     case (JoystickOffset.Buttons1):
                                         log("BTN-B Pressed");
-                                        move_minus_Z(1);
+                                        move_plus_Z(z_step);
                                         break;
                                     case (JoystickOffset.Buttons2):
                                         log("BTN-X Pressed");
-                                        move_plus_Z(1);
+                                        move_minus_Z(z_step);
                                         break;
                                     case (JoystickOffset.Buttons3):
                                         log("BTN-Y Pressed");
@@ -254,6 +266,74 @@ namespace Manual_PnP_WinFormsDotNet472
             {
                 changeVideoCameraFocus(); // will take current value of slider bar
             }
+        }
+
+        private void txtXSTEPSIZE_Leave(object sender, EventArgs e)
+        {
+            if (!double.TryParse(txtXSTEPSIZE.Text, out double x))
+            {
+                txtXSTEPSIZE.Text = "0.1";
+                MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
+            }
+        }
+
+        private void txtYSTEPSIZE_Leave(object sender, EventArgs e)
+        {
+            if (!double.TryParse(txtYSTEPSIZE.Text, out double x))
+            {
+                txtYSTEPSIZE.Text = "0.1";
+                MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
+            }
+        }
+
+        private void txtZSTEPSIZE_Leave(object sender, EventArgs e)
+        {
+            if (!double.TryParse(txtZSTEPSIZE.Text, out double x))
+            {
+                txtZSTEPSIZE.Text = "0.1";
+                MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
+            }
+        }
+
+        private void btnJOGXPLUS_Click(object sender, EventArgs e)
+        {
+            move_plus_X(x_step);
+        }
+
+        private void btnJOGXMINUS_Click(object sender, EventArgs e)
+        {
+            move_minus_X(x_step);
+        }
+
+        private void btnJOGYPLUS_Click(object sender, EventArgs e)
+        {
+            move_plus_Y(y_step);
+        }
+
+        private void btnJOGYMINUS_Click(object sender, EventArgs e)
+        {
+            move_minus_Y(y_step);
+        }
+
+        private void btnJOGZPLUS_Click(object sender, EventArgs e)
+        {
+            move_plus_Z(z_step);
+        }
+
+        private void btnJOGZMINUS_Click(object sender, EventArgs e)
+        {
+            move_minus_Z(z_step);
+        }
+
+        private void btnSENDGRBLSETTINGSTOMICROCONTROLLER_Click(object sender, EventArgs e)
+        {
+            sendGRBRSettings();
+        }
+
+        private void btnCLEARLOGS_Click(object sender, EventArgs e)
+        {
+            txtCONTROLLEROUTPUT.Clear();
+            txtSERIALOUT.Clear();   
         }
     }
 }
