@@ -109,7 +109,7 @@ namespace Manual_PnP_WinFormsDotNet472
                !double.TryParse(txtZSTEPPERMM.Text, out z_s) ||
                !double.TryParse(txtGRBLSETTINGPULSEWIDTH.Text, out us))
             {
-                log($"GRBL settings wrong format. Check settings.");
+                log($"[ERROR] GRBL settings wrong format?");
                 return;
             }
 

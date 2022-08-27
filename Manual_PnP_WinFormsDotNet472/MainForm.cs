@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AForge.Video.DirectShow;
+using Manual_PnP_WinFormsDotNet472.Properties;
 using SharpDX;
 using SharpDX.DirectInput;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -22,6 +23,28 @@ namespace Manual_PnP_WinFormsDotNet472
         double y_step = 0;
         double z_step = 0;
 
+        enum CURRENT_BTN
+        {
+            UP,
+            DOWN,
+            LEFT,
+            RIGHT,
+            LEFT_TRIGGER,
+            RIGHT_TRIGGER,
+            SELECT,
+            START,
+            A,
+            B,
+            X,
+            Y,
+            NONE
+        };
+
+        CURRENT_BTN current_btn = CURRENT_BTN.NONE;
+
+        bool LEFT_TRIGGER_PRESSED = false; // not implemented yet
+        bool ENABLE_MICRO_STEPPING = false; // controlled by right trigger
+
         public MainForm()
         {
             InitializeComponent();
@@ -31,12 +54,41 @@ namespace Manual_PnP_WinFormsDotNet472
             initSerial();
 
             setupVideoDevice();
+
+            initGRBLSettings();
+        }
+
+        public void initGRBLSettings()
+        {
+            // TODO: move this stuff to JSON
+            txtXSTEPSIZE.Text = "0.3";
+            txtYSTEPSIZE.Text = "0.3";
+            txtZSTEPSIZE.Text = "0.3";
+
+            txtXFEEDRATE.Text = "600";
+            txtYFEEDRATE.Text = "600";
+            txtZFEEDRATE.Text = "600";
+
+            txtXSTEPPERMM.Text = "50";
+            txtXSTEPPERMM.Text = "50";
+            txtXSTEPPERMM.Text = "50";
+
+            txtGRBLSETTINGPULSEWIDTH.Text = "10";
+
+            tbFOCUSSLIDER.Value = 125;
+
+            pbENABLEMICROSTEPPING.Image = null;
+            ENABLE_MICRO_STEPPING = false;
         }
 
         public void startInputTimer()
         {
             timer1 = new Timer();
-            timer1.Interval = 30; // Hz
+            timer1.Interval = 20; // 15Hz = 66ms
+                                  // 20Hz = 50ms
+                                  // 30Hz = 33ms
+                                  // 45Hz = 22ms
+                                  // 60Hz = 16ms
             timer1.Tick += (s, e) =>
             {
                 try
@@ -54,18 +106,64 @@ namespace Manual_PnP_WinFormsDotNet472
                     var lastState = gamepad.GetBufferedData(); //only show the last state
                     foreach (var state in lastState)
                     {
+                        txtCONTROLLERRAWOUTPUT.AppendText($"[{DateTime.Now.ToString("HH:mm:ss")}]: S.V:{state.Value} -- S.O:{state.Offset}\r\n");
+                        
+                        // while a direction button is held down, the 
+                        // offset stays static to the axis of movement (stays X or Y unchanging)
+                        // we can skip a lot of processing by determining up-front if the user is
+                        // holding down a direction button
+                        switch(current_btn)
+                        {
+                            case (CURRENT_BTN.NONE):
+                                break;
+                            case (CURRENT_BTN.UP):
+                                if (state.Offset == JoystickOffset.X && !ENABLE_MICRO_STEPPING) // right trigger will control micro stepping
+                                {
+                                    move_minus_Y(y_step);
+                                    return;
+                                }
+                                current_btn = CURRENT_BTN.NONE;
+                                break;
+                            case (CURRENT_BTN.DOWN):
+                                if (state.Offset == JoystickOffset.X && !ENABLE_MICRO_STEPPING)
+                                {
+                                    move_plus_Y(y_step);
+                                    return;
+                                }
+                                current_btn = CURRENT_BTN.NONE;
+                                break;
+                            case (CURRENT_BTN.LEFT):
+                                if (state.Offset == JoystickOffset.Y && !ENABLE_MICRO_STEPPING)
+                                {
+                                    move_plus_X(x_step);
+                                    return;
+                                }
+                                current_btn = CURRENT_BTN.NONE;
+                                break;
+                            case (CURRENT_BTN.RIGHT):
+                                if (state.Offset == JoystickOffset.Y && !ENABLE_MICRO_STEPPING)
+                                {
+                                    move_minus_X(x_step);
+                                    return;
+                                }
+                                current_btn = CURRENT_BTN.NONE;
+                                break;
+                        }
+
                         if (state.Offset == JoystickOffset.X || state.Offset == JoystickOffset.Y)
                         {
                             if(state.Value == 0xFFFF) // 65535 (XR pressed / YD pressed)
                             {
                                 if(state.Offset == JoystickOffset.X)
                                 {
+                                    current_btn = CURRENT_BTN.RIGHT;
                                     log("RIGHT Pressed");
                                     move_minus_X(x_step);
                                     //log($"{state}");
                                 }
                                 else if(state.Offset == JoystickOffset.Y)
                                 {
+                                    current_btn = CURRENT_BTN.DOWN;
                                     log("DOWN Pressed");
                                     move_plus_Y(y_step);
                                 }
@@ -79,12 +177,14 @@ namespace Manual_PnP_WinFormsDotNet472
                             {
                                 if (state.Offset == JoystickOffset.X)
                                 {
+                                    current_btn = CURRENT_BTN.LEFT;
                                     log("LEFT Pressed");
                                     move_plus_X(x_step);
                                     //log($"{state}");
                                 }
                                 else if (state.Offset == JoystickOffset.Y)
                                 {
+                                    current_btn = CURRENT_BTN.UP;
                                     log("UP Pressed");
                                     move_minus_Y(y_step);
                                 }
@@ -104,39 +204,52 @@ namespace Manual_PnP_WinFormsDotNet472
                                 switch(state.Offset)
                                 {
                                     case (JoystickOffset.Buttons0):
+                                        current_btn = CURRENT_BTN.A;
                                         log("BTN-A Pressed");
                                         break;
                                     case (JoystickOffset.Buttons1):
+                                        current_btn = CURRENT_BTN.B;
                                         log("BTN-B Pressed");
                                         move_plus_Z(z_step);
                                         break;
                                     case (JoystickOffset.Buttons2):
+                                        current_btn = CURRENT_BTN.X;
                                         log("BTN-X Pressed");
                                         move_minus_Z(z_step);
                                         break;
                                     case (JoystickOffset.Buttons3):
+                                        current_btn = CURRENT_BTN.Y;
                                         log("BTN-Y Pressed");
                                         break;
                                     case (JoystickOffset.Buttons4):
-                                        log("BTN-TL Pressed");
+                                        current_btn = CURRENT_BTN.LEFT_TRIGGER;
+                                        LEFT_TRIGGER_PRESSED = !LEFT_TRIGGER_PRESSED;
+                                        log($"BTN-TL Pressed: {LEFT_TRIGGER_PRESSED}");
                                         break;
                                     case (JoystickOffset.Buttons5):
-                                        log("BTN-TR Pressed");
+                                        current_btn = CURRENT_BTN.RIGHT_TRIGGER;
+                                        ENABLE_MICRO_STEPPING = !ENABLE_MICRO_STEPPING;
+                                        if (ENABLE_MICRO_STEPPING) pbENABLEMICROSTEPPING.Image = Resources.micro_stepping_enabled;
+                                        else pbENABLEMICROSTEPPING.Image = null;
+                                        log($"BTN-TR Pressed: {ENABLE_MICRO_STEPPING}");
                                         break;
                                     case (JoystickOffset.Buttons6):
+                                        current_btn = CURRENT_BTN.SELECT;
                                         log("BTN-SELECT Pressed");
                                         break;
                                     case (JoystickOffset.Buttons7):
+                                        current_btn = CURRENT_BTN.START;
                                         log("BTN-START Pressed");
                                         break;
                                     default:
+                                        current_btn = CURRENT_BTN.NONE;
                                         break;
                                 }
-                                //log($"{state}");
                             }
                             else if(state.Value == 0x0)
                             {
                                 //log($"{state}");
+                                // idk
                             }
                         }
                     }   
@@ -197,6 +310,7 @@ namespace Manual_PnP_WinFormsDotNet472
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            // TODO: SAVE SETTINGS TO JSON HERE
             Environment.Exit(69);
         }
 
@@ -247,6 +361,7 @@ namespace Manual_PnP_WinFormsDotNet472
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // TODO: SAVE SETTINGS TO JSON HERE
             disconnectFromVideoDevice();
             disconnectSerial();
         }
@@ -272,7 +387,7 @@ namespace Manual_PnP_WinFormsDotNet472
         {
             if (!double.TryParse(txtXSTEPSIZE.Text, out double x))
             {
-                txtXSTEPSIZE.Text = "0.1";
+                txtXSTEPSIZE.Text = "0.3";
                 MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
             }
         }
@@ -281,7 +396,7 @@ namespace Manual_PnP_WinFormsDotNet472
         {
             if (!double.TryParse(txtYSTEPSIZE.Text, out double x))
             {
-                txtYSTEPSIZE.Text = "0.1";
+                txtYSTEPSIZE.Text = "0.3";
                 MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
             }
         }
@@ -290,7 +405,7 @@ namespace Manual_PnP_WinFormsDotNet472
         {
             if (!double.TryParse(txtZSTEPSIZE.Text, out double x))
             {
-                txtZSTEPSIZE.Text = "0.1";
+                txtZSTEPSIZE.Text = "0.3";
                 MessageBox.Show("Enter a reasonable step size in millimeters.\r\nTODO: Define \"reasonable\"");
             }
         }
